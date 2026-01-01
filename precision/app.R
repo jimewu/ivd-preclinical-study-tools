@@ -3,16 +3,20 @@ library(shiny)
 library(readxl)
 library(ggplot2) # 用於 ggsave
 library(flextable) # 用於 save_as_docx
+library(dplyr)
+library(tidyr)
+library(tibble)
 
 # --- 1. 初始化設定與 Helper 載入 ---
 source("conf_toolkit/lib_officeverse.R") # [5]
 source("conf_toolkit/lib_format_flextable.R") # [2]
-source("conf_toolkit/lib_general_precision.R") # [3]
+source("general_precision.R") # [3]
 
 # --- 2. 使用者定義變數 ---
 TAB_TITLE_RAW_TABLE <- "Raw Data Table"
 TAB_TITLE_PLOT <- "Raw Data Plot"
 TAB_TITLE_VCA_TABLE <- "VCA Result Table"
+TAB_TITLE_REF <- "References"
 
 GITHUB_FILE_LINK <- "https://github.com/Start-S/Precision_Shiny_App/raw/main/precision_sample_data.xlsx"
 
@@ -66,6 +70,16 @@ ui <- fluidPage(
                     downloadButton("dl_vca_ft", "Download Table (.docx)"),
                     br(), br(),
                     uiOutput("out_vca_ft")
+                ),
+
+                # Tab 4: References
+                tabPanel(
+                    TAB_TITLE_REF,
+                    br(),
+                    # 下載按鈕 4
+                    downloadButton("dl_ref_ft", "Download Table (.docx)"),
+                    br(), br(),
+                    uiOutput("out_ref_ft")
                 )
             )
         )
@@ -90,7 +104,7 @@ server <- function(input, output, session) {
         if (!require("VCA")) install.packages("VCA")
 
         # --- Stage 1: Import & Format ---
-        # 邏輯來自 precision.R [1]，呼叫 lib_general_precision.R [3] 進行格式化
+        # 邏輯來自 precision.R [1],呼叫 lib_general_precision.R [3] 進行格式化
         stage1_import <- read_excel(path = file_path, sheet = sheet_name) %>%
             transmute(
                 sample = factor(conc),
@@ -132,10 +146,38 @@ server <- function(input, output, session) {
             tidyr::nest(VCA_df = colnames(.)) %>%
             mutate_VCA_df2ft()
 
+        # --- Stage 4: Reference Table Generator ---
+        # 列出此 App 使用的關鍵套件
+        pkg_list <- c("base", "shiny", "readxl", "ggplot2", "flextable", "dplyr", "VCA")
+
+        ref_df <- tibble(
+            Package = pkg_list,
+            Citation = purrr::map_chr(pkg_list, function(pkg) {
+                # 確保 VCA 已載入以獲取 Citation
+                if (pkg == "VCA" && !("VCA" %in% .packages())) library(VCA)
+
+                cit <- citation(pkg)
+                # 簡單抓取第一筆引用格式化為字串
+                if (length(cit) > 0) {
+                    paste0(format(cit[[1]], style = "text"), collapse = " ")
+                } else {
+                    "No citation available"
+                }
+            })
+        )
+
+        ref_ft <- ref_df %>%
+            flextable() %>%
+            width(j = 1, width = 1.5) %>%
+            width(j = 2, width = 6) %>%
+            set_header_labels(Package = "R Package", Citation = "Citation Reference") %>%
+            theme_box()
+
         list(
             raw_ft = stage1_import$raw_ft[[1]],
             raw_plot = stage1_import$raw_plot[[1]],
-            vca_ft = stage3_share$VCA_ft[[1]]
+            vca_ft = stage3_share$VCA_ft[[1]],
+            ref_ft = ref_ft
         )
     })
 
@@ -152,7 +194,7 @@ server <- function(input, output, session) {
             paste0("raw_data_table_", Sys.Date(), ".docx")
         },
         content = function(file) {
-            # 為了保留 flextable 的格式，將其存為 Word
+            # 為了保留 flextable 的格式,將其存為 Word
             save_as_docx(analysis_results()$raw_ft, path = file)
         }
     )
@@ -184,6 +226,21 @@ server <- function(input, output, session) {
         },
         content = function(file) {
             save_as_docx(analysis_results()$vca_ft, path = file)
+        }
+    )
+
+    # Result 4: References Table
+    output$out_ref_ft <- renderUI({
+        req(analysis_results())
+        analysis_results()$ref_ft %>% flextable::htmltools_value()
+    })
+
+    output$dl_ref_ft <- downloadHandler(
+        filename = function() {
+            paste0("references_", Sys.Date(), ".docx")
+        },
+        content = function(file) {
+            save_as_docx(analysis_results()$ref_ft, path = file)
         }
     )
 }
