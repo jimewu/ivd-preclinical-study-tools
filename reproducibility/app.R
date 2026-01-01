@@ -3,16 +3,22 @@ library(shiny)
 library(readxl)
 library(ggplot2)
 library(flextable)
+# 新增必要的資料處理套件以支援 Reference 生成邏輯 [2]
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(purrr)
 
 # --- 1. 初始化設定與 Helper 載入 ---
 source("conf_toolkit/lib_officeverse.R")
 source("conf_toolkit/lib_format_flextable.R")
-source("conf_toolkit/lib_general_precision.R") # 確保使用新版 Library
+source("general_precision.R") # 確保使用新版 Library
 
 # --- 2. 使用者定義 - 常數 ---
 TAB_TITLE_RAW_TABLE <- "Raw Data Table"
 TAB_TITLE_PLOT <- "Raw Data Plot"
 TAB_TITLE_VCA_TABLE <- "VCA Result Table"
+TAB_TITLE_REF <- "References" # 新增 Reference 標題
 GITHUB_FILE_LINK <- "https://github.com/Start-S/Precision_Shiny_App/raw/main/precision_sample_data.xlsx"
 
 # --- 3. UI 介面 ---
@@ -57,6 +63,14 @@ ui <- fluidPage(
                     downloadButton("dl_vca_ft", "Download Table (.docx)"),
                     br(), br(),
                     uiOutput("out_vca_ft")
+                ),
+                # 新增 Reference Tab [2]
+                tabPanel(
+                    TAB_TITLE_REF,
+                    br(),
+                    downloadButton("dl_ref_ft", "Download Table (.docx)"),
+                    br(), br(),
+                    uiOutput("out_ref_ft")
                 )
             )
         )
@@ -102,11 +116,11 @@ server <- function(input, output, session) {
                 day = factor(day),
                 replicate = factor(replicate),
                 y = as.numeric(y),
-                # 動態處理 condition，確保它是 factor
+                # 動態處理 condition,確保它是 factor
                 !!sym(condition_var) := factor(!!sym(condition_var))
             ) %>%
             tidyr::nest(raw = everything()) %>%
-            # 使用我們新修正的 helper (使用 values=list 方法，更穩定)
+            # 使用我們新修正的 helper (使用 values=list 方法,更穩定)
             mutate_raw2ft(dev_unit = params$unit, group_var = condition_var) %>%
             mutate_raw2plot(
                 analyte_name = params$analyte_name,
@@ -154,10 +168,34 @@ server <- function(input, output, session) {
             tidyr::nest(VCA_df = colnames(.)) %>%
             mutate_VCA_df2ft()
 
+        # --- Stage 4: Reference Table Generator ---
+        # 參考 app2.R 的邏輯加入套件列表與引用生成 [2]
+        pkg_list <- c("base", "shiny", "readxl", "ggplot2", "flextable", "dplyr", "VCA")
+
+        ref_df <- tibble(
+            Package = pkg_list,
+            Citation = purrr::map_chr(pkg_list, function(pkg) {
+                cit <- citation(pkg)
+                if (length(cit) > 0) {
+                    paste0(format(cit[[1]], style = "text"), collapse = " ")
+                } else {
+                    "No citation available"
+                }
+            })
+        )
+
+        ref_ft <- ref_df %>%
+            flextable() %>%
+            width(j = 1, width = 1.5) %>%
+            width(j = 2, width = 6) %>%
+            set_header_labels(Package = "R Package", Citation = "Citation Reference") %>%
+            theme_box()
+
         list(
             raw_ft = stage1_import$raw_ft[[1]],
             raw_plot = stage1_import$raw_plot[[1]],
-            vca_ft = stage3_share$VCA_ft[[1]]
+            vca_ft = stage3_share$VCA_ft[[1]],
+            ref_ft = ref_ft # 回傳 reference table
         )
     })
 
@@ -201,6 +239,21 @@ server <- function(input, output, session) {
         },
         content = function(file) {
             save_as_docx(analysis_results()$vca_ft, path = file)
+        }
+    )
+
+    # 新增 References 的 Output Render 與 Download Handler [2]
+    output$out_ref_ft <- renderUI({
+        req(analysis_results())
+        analysis_results()$ref_ft %>% flextable::htmltools_value()
+    })
+
+    output$dl_ref_ft <- downloadHandler(
+        filename = function() {
+            paste0("repro_references_", Sys.Date(), ".docx")
+        },
+        content = function(file) {
+            save_as_docx(analysis_results()$ref_ft, path = file)
         }
     )
 }
