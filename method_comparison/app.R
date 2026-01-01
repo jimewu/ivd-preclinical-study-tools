@@ -5,6 +5,7 @@ library(ggplot2)
 library(flextable)
 library(dplyr)
 library(tidyr)
+library(tibble)
 
 # --- 1. 初始化設定與 Helper 載入 ---
 source("conf_toolkit/lib_officeverse.R") # [5]
@@ -15,8 +16,7 @@ source("general_method_comparison.R") # [1]
 if (!require("EnvStats")) install.packages("EnvStats")
 if (!require("mcr")) install.packages("mcr")
 
-# --- 2. 使用者定義常數 (方便日後修改分頁名稱) ---
-# GitHub 模板路徑 (請依實際需求修改連結)
+# --- 2. 使用者定義常數 ---
 GITHUB_FILE_LINK <- "https://github.com/Start-S/Method_Comparison_Shiny_App/raw/main/method_comparison_sample_data.xlsx"
 
 # 分頁標題設定
@@ -29,6 +29,7 @@ TAB_6_COMPARE_FIT <- "Regression Comparison Plot"
 TAB_7_BEST_REG_PLOT <- "Best Regression Plot"
 TAB_8_COEF_TABLE <- "Regression Coefficients"
 TAB_9_BIAS_TABLE <- "Bias at Critical Conc."
+TAB_10_REF <- "References"
 
 # --- 3. UI 介面 ---
 ui <- fluidPage(
@@ -50,7 +51,7 @@ ui <- fluidPage(
             hr(),
             h4("Analysis Parameters"),
 
-            # 3. 參數設定 (包含說明文字)
+            # 3. 參數設定
             textInput("input_analyte", "Analyte Name", value = "Glucose"),
             helpText("分析項目的名稱 (例如: Glucose, Cholesterol)。"),
             textInput("input_unit", "Unit", value = "mg/dL"),
@@ -72,6 +73,7 @@ ui <- fluidPage(
         ),
         mainPanel(
             tabsetPanel(
+                id = "main_tabs",
                 # 4.1 原始資料表
                 tabPanel(
                     TAB_1_RAW_TABLE, br(),
@@ -125,6 +127,12 @@ ui <- fluidPage(
                     TAB_9_BIAS_TABLE, br(),
                     downloadButton("dl_bias_ft", "Download Table (.docx)"), br(), br(),
                     uiOutput("out_bias_ft")
+                ),
+                # 4.10 Reference Tab (Citation)
+                tabPanel(
+                    TAB_10_REF, br(),
+                    downloadButton("dl_ref_ft", "Download Table (.docx)"), br(), br(),
+                    uiOutput("out_ref_ft")
                 )
             )
         )
@@ -134,7 +142,6 @@ ui <- fluidPage(
 # --- 4. Server 邏輯 ---
 server <- function(input, output, session) {
     # 定義 Analysis 核心邏輯
-    # 這裡將 method_comparison.R [2] 的流程封裝進 reactive
     analysis_results <- eventReactive(input$run_analysis, {
         req(input$file_upload)
 
@@ -142,7 +149,7 @@ server <- function(input, output, session) {
         params <- list(
             analyte_name = input$input_analyte,
             unit = input$input_unit,
-            loq = input$input_loq, # 需注意 raw2sum 中可能需要字串或數字轉型
+            loq = input$input_loq,
             ref_name = input$input_ref_name,
             test_name = input$input_test_name,
             err_ratio = input$input_err_ratio,
@@ -154,7 +161,7 @@ server <- function(input, output, session) {
         sheet_name <- "data"
 
         # * Stage 1: Import & Basic Plots
-        # 參考 [2] 與 [1]
+        # 參考 [2], 調用 [1]
         stage1_import <- read_excel(
             path = file_path,
             sheet = sheet_name,
@@ -183,13 +190,13 @@ server <- function(input, output, session) {
             )
 
         # * Stage 2: QC (Rosner Test)
-        # 參考 [2]
+        # 參考 [2], 調用 [1]
         stage2_qc <- stage1_import %>%
-            select(-raw_ft, -raw_plot) %>% # 避免記憶體浪費
+            select(-raw_ft, -raw_plot) %>%
             raw2rosner_test_ft(alpha = params$alpha)
 
         # * Stage 3: Analyze (Regression)
-        # 參考 [2] 的複雜 regression 邏輯
+        # 參考 [2]
         stage3_analyze <- stage1_import %>%
             select(raw) %>%
             mutate(
@@ -279,29 +286,48 @@ server <- function(input, output, session) {
             )
 
         # * Stage 3C: Aggregate Regression Coefficients
-        # 參考 [2]
         stage3C_reg_ft <- stage3_analyze %>%
             select(regression_method_full, mcreg_coef) %>%
             tidyr::unnest(mcreg_coef) %>%
             tidyr::nest(mcreg_coef = colnames(.)) %>%
             mcreg_coef2ft(ncol_extra = 1)
 
-        # 回傳所有需要的物件 List
+        # * Stage: Reference Table Generator
+        # 列出此 App 使用的關鍵套件
+        pkg_list <- c("base", "shiny", "readxl", "ggplot2", "flextable", "dplyr", "mcr", "EnvStats")
+
+        ref_df <- tibble(
+            Package = pkg_list,
+            Citation = purrr::map_chr(pkg_list, function(pkg) {
+                cit <- citation(pkg)
+                # 簡單抓取第一筆引用格式化為字串
+                if (length(cit) > 0) {
+                    paste0(format(cit[[1]], style = "text"), collapse = " ")
+                } else {
+                    "No citation available"
+                }
+            })
+        )
+
+        ref_ft <- ref_df %>%
+            flextable() %>%
+            width(j = 1, width = 1.5) %>%
+            width(j = 2, width = 6) %>%
+            set_header_labels(Package = "R Package", Citation = "Citation Reference") %>%
+            theme_box()
+
+        # 回傳所有結果 List
         list(
             raw_ft = stage1_import$raw_ft[[1]],
             raw_plot = stage1_import$raw_plot[[1]],
             diff_plot = stage1_import$raw_difference_plot[[1]],
             perc_diff_plot = stage1_import$raw_perc_difference_plot[[1]],
             rosner_ft = stage2_qc$rosner_test_ft[[1]],
-
-            # 這裡保存 regression 的 raw object 以供後續作圖使用
             mcreg_objects = stage3_analyze$mcreg,
-            best_reg_object = stage3_analyze$mcreg[[1]], # 因為已經 arrange 過, 第一個就是 best
-
+            best_reg_object = stage3_analyze$mcreg[[1]],
             coef_ft = stage3C_reg_ft$mcreg_coef_ft[[1]],
             bias_ft = stage3_analyze$bias_ft[[1]],
-
-            # 使用者參數 pass 出去給繪圖函數使用
+            ref_ft = ref_ft, # 新增 Reference table
             params = params
         )
     })
@@ -378,15 +404,10 @@ server <- function(input, output, session) {
         }
     )
 
-    # 6. Regression Comparison Plot
-    # 注意: mcr::compareFit 產生的是 base R plot
+    # 6. Regression Comparison Plot (Base R Plot)
     output$out_compare_fit <- renderPlot({
         req(analysis_results())
         objs <- analysis_results()$mcreg_objects
-        # 因為在 arrange 時順序變了，這裡為了對比的一致性，建議依原始順序或直接畫出全部
-        # 參考 [2], 原本是倒序放入 (5,4,3,2,1).
-        # 我們這裡假設 stage3_analyze 已經被我們 re-arrange 過了 (best is 1st).
-        # 若要畫出所有線，就直接把 list 裡的物件丟進去
         mcr::compareFit(objs[[1]], objs[[2]], objs[[3]], objs[[4]], objs[[5]])
     })
     output$dl_compare_fit <- downloadHandler(
@@ -401,15 +422,13 @@ server <- function(input, output, session) {
         }
     )
 
-    # 7. Best Regression Plot
+    # 7. Best Regression Plot (Base R Plot)
     output$out_best_reg <- renderPlot({
         req(analysis_results())
         p_args <- analysis_results()$params
         mcr::MCResult.plot(
             analysis_results()$best_reg_object,
-            add.legend = FALSE,
-            x.lab = p_args$ref_name,
-            y.lab = p_args$test_name
+            add.legend = FALSE, x.lab = p_args$ref_name, y.lab = p_args$test_name
         )
     })
     output$dl_best_reg <- downloadHandler(
@@ -421,9 +440,7 @@ server <- function(input, output, session) {
             png(file, width = 2400, height = 1800, res = 300)
             mcr::MCResult.plot(
                 analysis_results()$best_reg_object,
-                add.legend = FALSE,
-                x.lab = p_args$ref_name,
-                y.lab = p_args$test_name
+                add.legend = FALSE, x.lab = p_args$ref_name, y.lab = p_args$test_name
             )
             dev.off()
         }
@@ -454,6 +471,20 @@ server <- function(input, output, session) {
         },
         content = function(file) {
             save_as_docx(analysis_results()$bias_ft, path = file)
+        }
+    )
+
+    # 10. References Table
+    output$out_ref_ft <- renderUI({
+        req(analysis_results())
+        analysis_results()$ref_ft %>% flextable::htmltools_value()
+    })
+    output$dl_ref_ft <- downloadHandler(
+        filename = function() {
+            paste0("references_", Sys.Date(), ".docx")
+        },
+        content = function(file) {
+            save_as_docx(analysis_results()$ref_ft, path = file)
         }
     )
 }
