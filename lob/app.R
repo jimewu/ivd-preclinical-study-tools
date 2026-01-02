@@ -27,7 +27,6 @@ TAB_TITLE_REF <- "References"
 GITHUB_FILE_LINK <- "https://github.com/Start-S/Precision_Shiny_App/raw/main/lob_sample_data.xlsx"
 
 # 2.3 輸入欄位說明文字 (Help Text)
-HELP_TEXT_ANALYTE <- "請輸入分析物的名稱 (e.g., Glucose, HbA1c)"
 HELP_TEXT_UNIT <- "請輸入測量單位的字串 (e.g., mg/dL, mmol/L)"
 HELP_TEXT_TEST_NAME <- "請輸入測試裝置或方法的名稱 (e.g., Subject Device)"
 
@@ -51,8 +50,6 @@ ui <- fluidPage(
             hr(),
 
             # 參數輸入，附帶說明文字
-            textInput("input_analyte", "Analyte Name", value = "Glucose"),
-            helpText(HELP_TEXT_ANALYTE),
             textInput("input_unit", "Unit", value = "mg/dL"),
             helpText(HELP_TEXT_UNIT),
             textInput("input_test_name", "Test Name", value = "Subject Device"),
@@ -110,7 +107,6 @@ server <- function(input, output, session) {
 
         # 取得使用者輸入參數
         params <- list(
-            analyte_name = input$input_analyte,
             unit = input$input_unit,
             test_name = input$input_test_name
         )
