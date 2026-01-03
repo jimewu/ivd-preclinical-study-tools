@@ -17,7 +17,10 @@ pkg_lst <- c(
     "officedown",
     "officer",
     "docxtractr",
-    "ggplot2"
+    "ggplot2",
+    "tidyr",
+    "tibble",
+    "purrr"
 )
 
 pacman::p_load(char = pkg_lst)

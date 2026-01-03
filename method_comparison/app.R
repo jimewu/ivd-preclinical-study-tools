@@ -1,11 +1,10 @@
 source("conf_toolkit/lib_load_package.R") # [4]
-library(shiny)
-library(readxl)
-library(ggplot2)
-library(flextable)
-library(dplyr)
-library(tidyr)
-library(tibble)
+
+pkg_lst <- c(
+    "shiny"
+)
+
+pacman::p_load(char = pkg_lst)
 
 # --- 1. 初始化設定與 Helper 載入 ---
 source("conf_toolkit/lib_officeverse.R") # [5]

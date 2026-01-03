@@ -5,21 +5,25 @@ options(repos = c(CRAN = "https://cloud.r-project.org"))
 # 2. 定義需要的套件清單
 pkg_lst <- c(
   "Rtools",
-  "knitr", 
-  "readr", 
-  "readxl", 
-  "dplyr", 
-  "flextable", 
-  "officedown", 
-  "officer", 
-  "docxtractr", 
-  "ggplot2", 
-  "VCA", 
-  "purrr", 
-  "tidyr", 
-  "tools", 
-  "Rmisc", 
-  "mcr"
+  "knitr",
+  "readr",
+  "readxl",
+  "dplyr",
+  "flextable",
+  "officedown",
+  "officer",
+  "docxtractr",
+  "ggplot2",
+  "patchwork",
+  "VCA",
+  "purrr",
+  "tidyr",
+  "tools",
+  "Rmisc",
+  "mcr",
+  "broom",
+  "EnvStats",
+  "tools"
 )
 
 # 3. 檢查系統中缺少的套件

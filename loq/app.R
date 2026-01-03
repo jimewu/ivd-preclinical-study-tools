@@ -4,13 +4,11 @@
 # 載入基礎套件設定
 source("conf_toolkit/lib_load_package.R") # [4]
 
-library(shiny)
-library(readxl)
-library(ggplot2) # 用於 ggsave
-library(flextable) # 用於 save_as_docx
-library(dplyr)
-library(tidyr)
-library(purrr)
+pkg_lst <- c(
+    "shiny"
+)
+
+pacman::p_load(char = pkg_lst)
 
 # 載入 helper functions
 source("conf_toolkit/lib_officeverse.R") # [5]

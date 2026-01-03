@@ -1,13 +1,11 @@
 source("conf_toolkit/lib_load_package.R")
-library(shiny)
-library(readxl)
-library(ggplot2)
-library(flextable)
-# 新增必要的資料處理套件以支援 Reference 生成邏輯 [2]
-library(dplyr)
-library(tidyr)
-library(tibble)
-library(purrr)
+
+pkg_lst <- c(
+    "shiny"
+)
+
+pacman::p_load(char = pkg_lst)
+
 
 # --- 1. 初始化設定與 Helper 載入 ---
 source("conf_toolkit/lib_officeverse.R")

@@ -13,12 +13,16 @@ pkg_lst <- c(
   "officer", 
   "docxtractr", 
   "ggplot2", 
+  "patchwork",
   "VCA", 
   "purrr", 
   "tidyr", 
   "tools", 
   "Rmisc", 
-  "mcr"
+  "mcr",
+  "broom",
+  "EnvStats",
+  "tools"
 )
 
 # 3. 檢查系統中缺少的套件

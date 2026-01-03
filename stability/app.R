@@ -1,14 +1,3 @@
-library(shiny)
-library(readxl)
-library(dplyr)
-library(flextable)
-library(ggplot2)
-library(officer)
-library(broom)
-library(purrr)
-library(tidyr)
-library(tibble)
-
 # 1. 載入外部資源
 # 依照 stability.R 中的定義載入必要的函式庫與設定檔
 # 請確保路徑與你的實際檔案位置相符
@@ -16,6 +5,14 @@ if (file.exists("conf_toolkit/lib_load_package.R")) source("conf_toolkit/lib_loa
 if (file.exists("conf_toolkit/lib_officeverse.R")) source("conf_toolkit/lib_officeverse.R")
 if (file.exists("conf_toolkit/lib_format_flextable.R")) source("conf_toolkit/lib_format_flextable.R")
 if (file.exists("general_stability.R")) source("general_stability.R")
+
+pkg_lst <- c(
+    "shiny",
+    "broom"
+)
+
+pacman::p_load(char = pkg_lst)
+
 
 # 2. UI 定義
 ui <- fluidPage(

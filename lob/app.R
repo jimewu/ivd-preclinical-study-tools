@@ -1,13 +1,11 @@
 source("conf_toolkit/lib_load_package.R") # 載入套件管理 [4]
-library(shiny)
-library(readxl)
-library(ggplot2) # 用於 ggsave
-library(flextable) # 用於 save_as_docx
-library(dplyr)
-library(tidyr)
-library(tibble)
-library(purrr)
-library(patchwork) # lob.R 需要此套件 [1]
+
+pkg_lst <- c(
+    "shiny",
+    "patchwork"
+)
+
+pacman::p_load(char = pkg_lst)
 
 # --- 1. 初始化設定與 Helper 載入 ---
 source("conf_toolkit/lib_officeverse.R") # [5]
