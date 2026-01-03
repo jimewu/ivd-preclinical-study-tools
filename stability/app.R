@@ -28,7 +28,7 @@ ui <- fluidPage(
             tags$div(
                 style = "margin-bottom: 20px;",
                 tags$a(
-                    href = "https://github.com/your-repo/template.xlsx", # 請替換成實際連結
+                    href = "https://github.com/jimewu/ivd-preclinical-study-tools/releases/download/v1.0/template_stability.xlsx",
                     class = "btn btn-info",
                     target = "_blank",
                     "Download Data Template (Excel)"

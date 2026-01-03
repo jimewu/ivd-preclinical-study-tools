@@ -21,7 +21,7 @@ TAB_TITLE_LOD_RESULT <- "LoD Analysis Result"
 TAB_TITLE_REF <- "References"
 
 # 2.2 GitHub 範例檔案連結
-GITHUB_FILE_LINK <- "https://github.com/Start-S/Precision_Shiny_App/raw/main/lod_classical_sample_data_parametric.xlsx" # 請確認此連結是否正確，或替換為正確的 LoD 範例檔連結
+GITHUB_FILE_LINK <- "https://github.com/jimewu/ivd-preclinical-study-tools/releases/download/v1.0/template_lod_classical.xlsx" # 請確認此連結是否正確，或替換為正確的 LoD 範例檔連結
 
 # 2.3 輸入欄位說明文字 (Help Texts)
 HELP_FILE_UPLOAD <- "請上傳 Excel 檔案 (.xlsx)，資料需位於名為 'data' 的工作表中。"

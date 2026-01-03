@@ -24,7 +24,7 @@ TAB_TITLE_REF <- "References"
 
 # 2.2 GitHub 模板連結
 # 請將此處連結修改為您實際存放 LoB 模板的網址
-GITHUB_FILE_LINK <- "https://github.com/Start-S/Precision_Shiny_App/raw/main/lob_sample_data.xlsx"
+GITHUB_FILE_LINK <- "https://github.com/jimewu/ivd-preclinical-study-tools/releases/download/v1.0/template_lob.xlsx"
 
 # 2.3 輸入欄位說明文字 (Help Text)
 HELP_TEXT_UNIT <- "請輸入測量單位的字串 (e.g., mg/dL, mmol/L)"

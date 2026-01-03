@@ -26,7 +26,7 @@ TAB_TITLE_LOQ_RESULT <- "LoQ Analysis Result"
 TAB_TITLE_REF <- "References"
 
 # 2.2 GitHub 範例檔案連結 (請修改為正確的 LoQ 範例檔連結)
-GITHUB_FILE_LINK <- "https://github.com/Start-S/Precision_Shiny_App/raw/main/loq_sample_data.xlsx"
+GITHUB_FILE_LINK <- "https://github.com/jimewu/ivd-preclinical-study-tools/releases/download/v1.0/template_loq.xlsx"
 
 # 2.3 輸入欄位說明文字 (Help Texts)
 HELP_FILE_UPLOAD <- "Upload Excel File (Sheet: data)"

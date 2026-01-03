@@ -19,7 +19,7 @@ TAB_TITLE_RAW_TABLE <- "Raw Data Table"
 TAB_TITLE_PLOT <- "Raw Data Plot"
 TAB_TITLE_VCA_TABLE <- "ANOVA Result Table"
 TAB_TITLE_REF <- "References" # 新增 Reference 標題
-GITHUB_FILE_LINK <- "https://github.com/Start-S/Precision_Shiny_App/raw/main/precision_sample_data.xlsx"
+GITHUB_FILE_LINK <- "https://github.com/jimewu/ivd-preclinical-study-tools/releases/download/v1.0/template_reproducibility.xlsx"
 
 # --- 3. UI 介面 ---
 ui <- fluidPage(

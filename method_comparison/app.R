@@ -17,7 +17,7 @@ if (!require("EnvStats")) install.packages("EnvStats")
 if (!require("mcr")) install.packages("mcr")
 
 # --- 2. 使用者定義常數 ---
-GITHUB_FILE_LINK <- "https://github.com/Start-S/Method_Comparison_Shiny_App/raw/main/method_comparison_sample_data.xlsx"
+GITHUB_FILE_LINK <- "https://github.com/jimewu/ivd-preclinical-study-tools/releases/download/v1.0/template_method_comparison.xlsx"
 
 # 分頁標題設定
 TAB_1_RAW_TABLE <- "Raw Data Table"
