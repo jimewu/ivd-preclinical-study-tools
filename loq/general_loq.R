@@ -204,7 +204,7 @@ mutate_raw2total_error <- function(df, loq_type, allowable_perc_te, te_method = 
 }
 
 
-mutate_total_error2ft <- function(df, unit) {
+mutate_total_error2ft <- function(df, unit, te_method = "Westgard model") {
     df %>%
         mutate(
             total_error_ft = purrr::map(
@@ -261,12 +261,18 @@ mutate_total_error2ft <- function(df, unit) {
                             j = c(1, ncol(x))
                         )
 
+                    if (te_method == "Westgard model") {
+                        te_formula <- "|Bias| + 2 * SD"
+                    } else {
+                        te_formula <- "(Bias^2 + SD^2)^0.5"
+                    }
+
                     header_footnote_df <- data.frame(
                         i = 1,
                         j = c(6, 7),
                         value = c(
                             "X - R",
-                            "|Bias| + 2 * SD"
+                            te_formula
                         )
                     )
 

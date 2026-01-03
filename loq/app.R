@@ -29,15 +29,15 @@ TAB_TITLE_REF <- "References"
 GITHUB_FILE_LINK <- "https://github.com/Start-S/Precision_Shiny_App/raw/main/loq_sample_data.xlsx"
 
 # 2.3 輸入欄位說明文字 (Help Texts)
-HELP_FILE_UPLOAD <- "請上傳 Excel 檔案 (.xlsx)，資料需位於名為 'data' 的工作表中。"
-HELP_UNIT <- "輸入濃度單位 (例如: mg/dL)。"
-HELP_TEST_NAME <- "輸入受測裝置的名稱 (例如: Subject Device)。"
-HELP_ALLOWABLE_TE <- "輸入允許的總誤差百分比 (Allowable Total Error %)。"
-HELP_TE_METHOD <- "選擇總誤差 (Total Error) 的計算模型。"
+HELP_FILE_UPLOAD <- "Upload Excel File (Sheet: data)"
+HELP_UNIT <- "Unit"
+HELP_TEST_NAME <- "Subject Device Name"
+HELP_ALLOWABLE_TE <- "Allowable Total Error (%)"
+HELP_TE_METHOD <- "Model for Total Error Calculation"
 
 # --- 3. UI 介面 ---
 ui <- fluidPage(
-    titlePanel("CLSI EP17 LoQ Analysis App"),
+    titlePanel("Limit of Qauntititation"),
     sidebarLayout(
         sidebarPanel(
             # 1. 下載範例檔連結
@@ -185,7 +185,10 @@ server <- function(input, output, session) {
                 ),
                 te_method = params$te_method
             ) %>%
-            mutate_total_error2ft(unit = params$unit)
+            mutate_total_error2ft(
+                unit = params$unit,
+                te_method = params$te_method
+            )
 
         # --- Generarte Reference Table ---
         # 邏輯參照 app.R [6]
@@ -282,4 +285,11 @@ server <- function(input, output, session) {
     )
 }
 
-shinyApp(ui = ui, server = server)
+shinyApp(
+    ui = ui,
+    server = server,
+    options = list(
+        host = "0.0.0.0",
+        port = 80
+    )
+)

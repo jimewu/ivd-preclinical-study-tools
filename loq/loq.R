@@ -71,4 +71,7 @@ stage3_analysis <- stage2_tidy %>%
         ),
         te_method = params$te_method
     ) %>%
-    mutate_total_error2ft(unit = params$unit)
+    mutate_total_error2ft(
+        unit = params$unit,
+        te_method = params$te_method
+    )
