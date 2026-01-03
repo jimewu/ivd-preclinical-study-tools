@@ -10,7 +10,7 @@ library(tidyr)
 library(tibble)
 
 # 1. 載入外部資源
-# 依照 stability.R 中的定義載入必要的函式庫與設定檔 [5]
+# 依照 stability.R 中的定義載入必要的函式庫與設定檔
 # 請確保路徑與你的實際檔案位置相符
 if (file.exists("conf_toolkit/lib_load_package.R")) source("conf_toolkit/lib_load_package.R")
 if (file.exists("conf_toolkit/lib_officeverse.R")) source("conf_toolkit/lib_officeverse.R")
@@ -24,7 +24,7 @@ ui <- fluidPage(
     titlePanel("Stability Analysis Application"),
     sidebarLayout(
         sidebarPanel(
-            # 功能 1: 連結到 GitHub 模板 [User Requirement 1]
+            # 功能 1: 連結到 GitHub 模板
             tags$div(
                 style = "margin-bottom: 20px;",
                 tags$a(
@@ -35,7 +35,7 @@ ui <- fluidPage(
                 )
             ),
 
-            # 功能 2: 上傳 Excel 檔案 [User Requirement 2]
+            # 功能 2: 上傳 Excel 檔案
             fileInput("file_input", "Upload Completed Data (Excel)",
                 accept = c(".xlsx"),
                 placeholder = "Select the data file"
@@ -44,9 +44,7 @@ ui <- fluidPage(
             hr(),
             h4("Parameters Settings"),
 
-            # 功能 3: 使用者輸入變數與說明文字 [User Requirement 3]
-            textInput("analyte_name", "Analyte Name", value = "Glucose"),
-            helpText("The name of the substance being analyzed (e.g., Glucose, Cholesterol)."),
+            # 功能 3: 使用者輸入變數與說明文字
             textInput("unit", "Unit", value = "mg/dL"),
             helpText("Measurement unit for the assay (e.g., mg/dL, mmol/L)."),
             textInput("test_name", "Test Name", value = "Subject Device"),
@@ -57,44 +55,62 @@ ui <- fluidPage(
             actionButton("run_analysis", "Run Analysis", class = "btn-primary")
         ),
         mainPanel(
-            # 功能 4, 5, 6: 結果分頁 [User Requirement 4, 5, 6]
+            # 功能 4, 5, 6: 結果分頁
             tabsetPanel(
                 id = "main_tabs",
 
                 # 4.1 原始資料表
                 tabPanel(
                     "Raw Data List",
+                    br(),
+                    downloadButton("dl_raw_ft", "Download Table (.docx)"),
+                    br(), br(),
                     uiOutput("raw_ft_ui")
                 ),
 
                 # 4.2 原始資料圖
                 tabPanel(
                     "Raw Data Plot",
+                    br(),
+                    downloadButton("dl_raw_plot", "Download Plot (.png)"),
+                    br(), br(),
                     plotOutput("raw_plot_output", height = "600px")
                 ),
 
                 # 4.3 Regression 結果表
                 tabPanel(
                     "Regression Analysis",
+                    br(),
+                    downloadButton("dl_reg_ft", "Download Table (.docx)"),
+                    br(), br(),
                     uiOutput("regression_ft_ui")
                 ),
 
                 # 4.4 Drift vs Day 1 表
                 tabPanel(
                     "Drift Analysis (vs Day 1)",
+                    br(),
+                    downloadButton("dl_drift_z0_ft", "Download Table (.docx)"),
+                    br(), br(),
                     uiOutput("drift_z0_ft_ui")
                 ),
 
                 # 4.5 Drift vs Intercept 表
                 tabPanel(
                     "Drift Analysis (vs Intercept)",
+                    br(),
+                    downloadButton("dl_drift_int_ft", "Download Table (.docx)"),
+                    br(), br(),
                     uiOutput("drift_int_ft_ui")
                 ),
 
-                # 5. Reference List
+                # 5. Reference List (Modified to table)
                 tabPanel(
                     "References (Packages)",
-                    verbatimTextOutput("package_refs")
+                    br(),
+                    downloadButton("dl_ref_ft", "Download Table (.docx)"),
+                    br(), br(),
+                    uiOutput("package_refs_ui")
                 )
             )
         )
@@ -104,13 +120,11 @@ ui <- fluidPage(
 # 3. Server 定義
 server <- function(input, output, session) {
     # Reactive block: 執行主要分析運算
-    # 邏輯主要改寫自 stability.R 的 Stage 1 到 Stage 3 [5]
     analysis_results <- eventReactive(input$run_analysis, {
         req(input$file_input)
 
         # 讀取參數
         params <- list(
-            analyte_name = input$analyte_name,
             unit = input$unit,
             test_name = input$test_name,
             perc_allowable_drift = input$perc_allowable_drift
@@ -120,7 +134,6 @@ server <- function(input, output, session) {
         sheet_name <- "data"
 
         # * Stage 1: Import
-        # 資料讀取與前處理邏輯詳見 source id="5"
         stage1_import <- read_excel(
             path = file_path,
             sheet = sheet_name
@@ -156,7 +169,6 @@ server <- function(input, output, session) {
             )
 
         # * Stage 2: Analyze
-        # 呼叫核心運算函式庫 general_stability.R [4]
         stage2_analyze <- stage1_import %>%
             select(raw) %>%
             tidyr::unnest(raw) %>%
@@ -203,70 +215,157 @@ server <- function(input, output, session) {
             tidyr::unnest(perc_drift_vs_intercept) %>%
             mutate_drift2ft()
 
+        # * Stage 4: References Table Generator
+        # Create citation flextable similar to sample.R logic [2]
+        pkg_list <- c(
+            "shiny", "readxl", "dplyr", "flextable", "ggplot2",
+            "officer", "broom", "purrr", "tidyr", "tibble"
+        )
+
+        ref_df <- tibble(
+            Package = pkg_list,
+            Citation = purrr::map_chr(pkg_list, function(pkg) {
+                if (requireNamespace(pkg, quietly = TRUE)) {
+                    cit <- citation(pkg)
+                    if (length(cit) > 0) {
+                        # Format citation to text logic
+                        paste0(format(cit[[1]], style = "text"), collapse = " ")
+                    } else {
+                        "No citation available"
+                    }
+                } else {
+                    "Package not loaded"
+                }
+            })
+        )
+
+        # Check if theme_box exists (from lib_format_flextable.R), otherwise use default
+        ref_ft <- ref_df %>%
+            flextable() %>%
+            width(j = 1, width = 1.5) %>%
+            width(j = 2, width = 6) %>%
+            set_header_labels(Package = "R Package", Citation = "Citation Reference")
+
+        # Apply formatting if custom function exists, else standard fit
+        if (exists("theme_box")) {
+            ref_ft <- ref_ft %>% theme_box()
+        } else {
+            ref_ft <- ref_ft %>% autofit()
+        }
+
         # 回傳所有結果的 List
         list(
             stage1 = stage1_import,
             regression = stage3_share_regression,
             drift_z0 = stage3_share_drift_vs_z0,
-            drift_int = stage3_share_drift_vs_intercept
+            drift_int = stage3_share_drift_vs_intercept,
+            ref_ft = ref_ft
         )
     })
 
-    # --- Outputs Rendering ---
+    # --- Outputs Rendering & Downloads ---
 
-    # 4.1 stage1_import$raw_ft[1][[1]] (原始資料表)
+    # 4.1 stage1_import$raw_ft (原始資料表)
     output$raw_ft_ui <- renderUI({
         res <- analysis_results()
-        # 取得 list 中第一個 flextable [5]
         ft <- res$stage1$raw_ft[[1]]
         htmltools_value(ft)
     })
 
-    # 4.2 stage1_import$raw_plot[1][[1]] (原始資料圖)
+    output$dl_raw_ft <- downloadHandler(
+        filename = function() {
+            paste0("raw_data_", Sys.Date(), ".docx")
+        },
+        content = function(file) {
+            req(analysis_results())
+            # Save flextable to docx
+            ft <- analysis_results()$stage1$raw_ft[[1]]
+            save_as_docx(ft, path = file)
+        }
+    )
+
+    # 4.2 stage1_import$raw_plot (原始資料圖)
     output$raw_plot_output <- renderPlot({
         res <- analysis_results()
-        # 取得 list 中第一個 plot [4], [5]
         plot_obj <- res$stage1$raw_plot[[1]]
         print(plot_obj)
     })
 
-    # 4.3 stage3_share_regression (regression結果表)
+    output$dl_raw_plot <- downloadHandler(
+        filename = function() {
+            paste0("raw_data_plot_", Sys.Date(), ".png")
+        },
+        content = function(file) {
+            req(analysis_results())
+            # Save ggplot to png
+            plot_obj <- analysis_results()$stage1$raw_plot[[1]]
+            ggsave(file, plot = plot_obj, width = 10, height = 8, dpi = 300)
+        }
+    )
+
+    # 4.3 Regression Table
     output$regression_ft_ui <- renderUI({
         res <- analysis_results()
         htmltools_value(res$regression)
     })
 
-    # 4.4 stage3_share_drift_vs_z0
+    output$dl_reg_ft <- downloadHandler(
+        filename = function() {
+            paste0("regression_analysis_", Sys.Date(), ".docx")
+        },
+        content = function(file) {
+            req(analysis_results())
+            save_as_docx(analysis_results()$regression, path = file)
+        }
+    )
+
+    # 4.4 Drift vs Day 1 Table
     output$drift_z0_ft_ui <- renderUI({
         res <- analysis_results()
         htmltools_value(res$drift_z0)
     })
 
-    # 4.5 stage3_share_drift_vs_intercept
+    output$dl_drift_z0_ft <- downloadHandler(
+        filename = function() {
+            paste0("drift_diff_analysis_", Sys.Date(), ".docx")
+        },
+        content = function(file) {
+            req(analysis_results())
+            save_as_docx(analysis_results()$drift_z0, path = file)
+        }
+    )
+
+    # 4.5 Drift vs Intercept Table
     output$drift_int_ft_ui <- renderUI({
         res <- analysis_results()
         htmltools_value(res$drift_int)
     })
 
-    # 5. Reference List
-    # 自動列出 session 中載入的套件引用資訊
-    output$package_refs <- renderText({
-        # 使用 lib_load_package.R 中定義的 pkg_lst 或是當前載入的套件
-        pkg_list <- c(
-            "shiny", "readxl", "dplyr", "flextable", "ggplot2",
-            "officer", "broom", "purrr", "tidyr"
-        )
+    output$dl_drift_int_ft <- downloadHandler(
+        filename = function() {
+            paste0("drift_intercept_analysis_", Sys.Date(), ".docx")
+        },
+        content = function(file) {
+            req(analysis_results())
+            save_as_docx(analysis_results()$drift_int, path = file)
+        }
+    )
 
-        refs <- sapply(pkg_list, function(p) {
-            if (requireNamespace(p, quietly = TRUE)) {
-                cit <- citation(p)
-                paste0("Package: ", p, "\n", format(cit, style = "text"), "\n\n")
-            } else {
-                ""
-            }
-        })
-        paste(refs, collapse = "")
+    # 5. Reference List (Flextable with Download)
+    output$package_refs_ui <- renderUI({
+        res <- analysis_results()
+        htmltools_value(res$ref_ft)
     })
+
+    output$dl_ref_ft <- downloadHandler(
+        filename = function() {
+            paste0("references_", Sys.Date(), ".docx")
+        },
+        content = function(file) {
+            req(analysis_results())
+            save_as_docx(analysis_results()$ref_ft, path = file)
+        }
+    )
 }
 
 # 啟動 Shiny App

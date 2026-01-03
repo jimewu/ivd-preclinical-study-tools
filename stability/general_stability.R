@@ -6,6 +6,9 @@ mutate_raw2ft <- function(df, unit) {
                 function(raw) {
                     is_all_na <- all(is.na(raw$y_anchor))
 
+                    raw <- raw %>%
+                        select(-any_has_no_anchor)
+
                     if (is_all_na) {
                         raw <- raw %>%
                             select(-y_anchor)
@@ -443,8 +446,8 @@ mutate_predict2drift <- function(df, perc_allowable_drift) {
                         result <- predict %>%
                             mutate(
                                 perc_drift = 100 * (fit - base) / base,
-                                drift_upper = 100 * (upr - base) / base,
-                                drift_lower = 100 * (lwr - base) / base
+                                perc_drift_upper = 100 * (upr - base) / base,
+                                perc_drift_lower = 100 * (lwr - base) / base
                             )
                     } else {
                         # 有y_anchor的狀況: 預測值就是漂移
@@ -483,8 +486,8 @@ mutate_predict2drift <- function(df, perc_allowable_drift) {
                         result <- predict %>%
                             mutate(
                                 perc_drift = 100 * (fit - base) / base,
-                                drift_upper = 100 * (upr - base) / base,
-                                drift_lower = 100 * (lwr - base) / base
+                                perc_drift_upper = 100 * (upr - base) / base,
+                                perc_drift_lower = 100 * (lwr - base) / base
                             )
                     } else {
                         # 有y_anchor的狀況: 預測值就是漂移
@@ -580,277 +583,4 @@ mutate_drift2ft <- function(df) {
                 rep(1, ncol(df))
             )
         )
-}
-
-# ! 前一版, 以非平均值進行fit
-raw2stability <- function(data, perc_allowable_drift) {
-    stability <- data %>%
-        mutate(
-            raw_ext = purrr::map(
-                raw,
-                function(x) {
-                    ep25_acceptance_criteria <- as.numeric(perc_allowable_drift)
-
-                    ymean <- x %>%
-                        group_by(day) %>%
-                        summarize(
-                            mean = mean(y)
-                        ) %>%
-                        arrange(day)
-
-                    result <- cbind(
-                        x,
-                        y0 = ymean$mean[1]
-                    ) %>%
-                        mutate(
-                            limit_upr = y0 * (1 + ep25_acceptance_criteria / 100),
-                            limit_lwr = y0 * (1 - ep25_acceptance_criteria / 100)
-                        )
-
-                    return(result)
-                }
-            ),
-            fit = purrr::map(
-                raw,
-                function(x) {
-                    result <- lm(
-                        formula = "y ~ day",
-                        data = x
-                    )
-
-                    return(result)
-                }
-            ),
-            fit_summary = purrr::map(
-                fit,
-                function(x) {
-                    result <- summary(x)
-                    return(result)
-                }
-            ),
-            fit_summary_tidy = purrr::map(
-                fit_summary,
-                function(x) {
-                    result <- broom::tidy(x) %>%
-                        mutate(
-                            overall_p_value = p.value[2]
-                        ) %>%
-                        select(-p.value) %>%
-                        mutate(
-                            if_significant = ifelse(
-                                overall_p_value < 0.05,
-                                "Y",
-                                "N"
-                            )
-                        )
-                    return(result)
-                }
-            ),
-            predict = purrr::map2(
-                .x = fit,
-                .y = fit_summary_tidy,
-                function(x, y) {
-                    if (y$overall_p_value[1] < 0.05) {
-                        range_day <- 1:999
-
-                        result <- data.frame(
-                            day = range_day,
-                            y_predict = predict(
-                                x,
-                                newdata = data.frame(
-                                    day = range_day
-                                ),
-                                interval = "confidence",
-                                level = 0.95
-                            )
-                        ) %>%
-                            mutate(
-                                y_predict = case_when(
-                                    y$estimate[2] < 0 ~ y_predict.lwr,
-                                    TRUE ~ y_predict.upr
-                                )
-                            )
-                    } else {
-                        result <- NA
-                    }
-
-                    return(result)
-                }
-            ),
-            maxday = purrr::map2_int(
-                .x = raw_ext,
-                .y = predict,
-                function(x, y) {
-                    max_test_day <- max(
-                        x$day
-                    )
-
-                    if (!is.data.frame(y)) {
-                        result <- max_test_day
-                    } else if (y$y_predict[nrow(y)] / y$y_predict[1] < 1) {
-                        result <- y %>%
-                            filter(y_predict >= x$limit_lwr)
-                    } else {
-                        result <- y %>%
-                            filter(y_predict <= x$limit_upr)
-                    }
-
-                    if (is.data.frame(result)) {
-                        result <- case_when(
-                            nrow(result) == 0 ~ 0,
-                            TRUE ~ max(result$day)
-                        )
-                    }
-
-                    if (result > max_test_day) {
-                        result <- max_test_day
-                    }
-
-                    return(result)
-                }
-            )
-        )
-
-    return(stability)
-}
-
-
-# ! old version
-
-data2stability <- function(data, perc_allowable_drift) {
-    stability <- data %>%
-        tidyr::nest(
-            data = c(
-                "day",
-                "replicate",
-                "y"
-            )
-        ) %>%
-        mutate(
-            data = purrr::map(
-                data,
-                function(x) {
-                    ep25_acceptance_criteria <- as.numeric(perc_allowable_drift)
-
-                    ymean <- x %>%
-                        group_by(day) %>%
-                        summarize(
-                            mean = mean(y)
-                        ) %>%
-                        arrange(day)
-
-                    result <- cbind(
-                        x,
-                        y0 = ymean$mean[1]
-                    ) %>%
-                        mutate(
-                            limit_upr = y0 * (1 + ep25_acceptance_criteria / 100),
-                            limit_lwr = y0 * (1 - ep25_acceptance_criteria / 100)
-                        )
-
-                    return(result)
-                }
-            ),
-            fit = purrr::map(
-                data,
-                function(x) {
-                    result <- lm(
-                        formula = "y ~ day",
-                        data = x
-                    )
-
-                    return(result)
-                }
-            ),
-            fit_summary = purrr::map(
-                fit,
-                function(x) {
-                    result <- summary(x)
-                    return(result)
-                }
-            ),
-            fit_summary_tidy = purrr::map(
-                fit_summary,
-                function(x) {
-                    result <- broom::tidy(x) %>%
-                        mutate(
-                            overall_p_value = p.value[2]
-                        ) %>%
-                        select(-p.value) %>%
-                        mutate(
-                            if_significant = ifelse(
-                                overall_p_value < 0.05,
-                                "Y",
-                                "N"
-                            )
-                        )
-                    return(result)
-                }
-            ),
-            predict = purrr::map2(
-                .x = fit,
-                .y = fit_summary_tidy,
-                function(x, y) {
-                    if (y$overall_p_value[1] < 0.05) {
-                        range_day <- 1:300
-
-                        result <- data.frame(
-                            day = range_day,
-                            y_predict = predict(
-                                x,
-                                newdata = data.frame(
-                                    day = range_day
-                                ),
-                                interval = "confidence",
-                                level = 0.95
-                            )
-                        ) %>%
-                            mutate(
-                                y_predict = case_when(
-                                    y$estimate[2] < 0 ~ y_predict.lwr,
-                                    TRUE ~ y_predict.upr
-                                )
-                            )
-                    } else {
-                        result <- NA
-                    }
-
-                    return(result)
-                }
-            ),
-            maxday = purrr::map2(
-                .x = data,
-                .y = predict,
-                function(x, y) {
-                    max_test_day <- max(
-                        x$day
-                    )
-
-                    if (!is.data.frame(y)) {
-                        result <- max_test_day
-                    } else if (y$y_predict[nrow(y)] / y$y_predict[1] < 1) {
-                        result <- y %>%
-                            filter(y_predict >= x$limit_lwr)
-                    } else {
-                        result <- y %>%
-                            filter(y_predict <= x$limit_upr)
-                    }
-
-                    if (is.data.frame(result)) {
-                        result <- case_when(
-                            nrow(result) == 0 ~ 0,
-                            TRUE ~ max(result$day)
-                        )
-                    }
-
-                    if (result > max_test_day) {
-                        result <- max_test_day
-                    }
-
-                    return(result)
-                }
-            )
-        )
-
-    return(stability)
 }
