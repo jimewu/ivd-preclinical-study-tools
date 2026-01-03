@@ -17,7 +17,7 @@ source("general_precision.R") # 確保使用新版 Library
 # --- 2. 使用者定義 - 常數 ---
 TAB_TITLE_RAW_TABLE <- "Raw Data Table"
 TAB_TITLE_PLOT <- "Raw Data Plot"
-TAB_TITLE_VCA_TABLE <- "VCA Result Table"
+TAB_TITLE_VCA_TABLE <- "ANOVA Result Table"
 TAB_TITLE_REF <- "References" # 新增 Reference 標題
 GITHUB_FILE_LINK <- "https://github.com/Start-S/Precision_Shiny_App/raw/main/precision_sample_data.xlsx"
 
@@ -258,4 +258,11 @@ server <- function(input, output, session) {
     )
 }
 
-shinyApp(ui = ui, server = server)
+shinyApp(
+    ui = ui,
+    server = server,
+    options = list(
+        host = "0.0.0.0",
+        port = 80
+    )
+)
