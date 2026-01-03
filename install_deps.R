@@ -1,0 +1,45 @@
+# 1. 設定 CRAN Repo
+# 確保安裝時有固定的下載來源
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+# 2. 定義需要的套件清單
+pkg_lst <- c(
+  "knitr", 
+  "readr", 
+  "readxl", 
+  "dplyr", 
+  "flextable", 
+  "officedown", 
+  "officer", 
+  "docxtractr", 
+  "ggplot2", 
+  "VCA", 
+  "purrr", 
+  "tidyr", 
+  "tools", 
+  "Rmisc", 
+  "mcr"
+)
+
+# 3. 檢查系統中缺少的套件
+# installed.packages() 會回傳目前環境所有已安裝的套件矩陣，rownames 為套件名稱
+installed_pkgs <- rownames(installed.packages())
+
+# 使用 setdiff 找出 pkg_lst 中「不在」installed_pkgs 裡的項目
+missing_pkgs <- setdiff(pkg_lst, installed_pkgs)
+
+# 4. 如果有缺少的套件，則進行批次安裝
+if (length(missing_pkgs) > 0) {
+  message("--------------------------------------------------")
+  message("偵測到系統缺少以下套件，準備開始安裝：")
+  message(paste(missing_pkgs, collapse = ", "))
+  message("--------------------------------------------------")
+  
+  # 這裡只安裝，不載入 (library)
+  install.packages(missing_pkgs)
+  
+  message("--------------------------------------------------")
+  message("安裝程序完成。")
+} else {
+  message("所有指定套件皆已安裝，無需執行任何動作。")
+}
