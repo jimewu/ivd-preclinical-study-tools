@@ -23,7 +23,7 @@ TAB_TITLE_FIT3 <- "LoD Fit 3 (3rd Order)"
 TAB_TITLE_REF <- "References"
 
 # GitHub 模板連結
-GITHUB_FILE_LINK <- "https://github.com/jimewu/ivd-preclinical-study-tools/releases/download/v1.0/template_lod_precision_profile.xlsx"
+GITHUB_FILE_LINK <- "https://github.com/jimewu/ivd-preclinical-study-tools/releases/download/v1.3/template_lod_precision_profile.xlsx"
 
 # --- 3. UI 介面 ---
 ui <- fluidPage(

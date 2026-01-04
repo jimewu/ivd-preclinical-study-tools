@@ -21,7 +21,7 @@ TAB_TITLE_FIT_PLOT <- "Regression Fit Plot"
 TAB_TITLE_REF <- "References"
 
 # Github 模板檔案連結
-GITHUB_FILE_LINK <- "https://github.com/jimewu/ivd-preclinical-study-tools/releases/download/v1.0/template_lod_probit.xlsx"
+GITHUB_FILE_LINK <- "https://github.com/jimewu/ivd-preclinical-study-tools/releases/download/v1.3/template_lod_probit.xlsx"
 
 # --- 3. UI 介面 ---
 ui <- fluidPage(
