@@ -4,9 +4,12 @@ options(repos = c(CRAN = "https://cloud.r-project.org"))
 
 # 2. 定義需要的套件清單
 pkg_lst <- c(
+  "pacman",
+  "minty",
   "knitr", 
   "readr", 
   "readxl", 
+  "readODS",
   "dplyr", 
   "flextable", 
   "officedown", 
